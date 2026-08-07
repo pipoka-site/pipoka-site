@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Clock3, Expand, Heart, LockKeyhole, Minus, Plus, ShoppingCart, Star, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Product, ProductOptionGroup, SelectedOption } from "@/lib/products";
 import { formatPrice, getProductStartingPrice, isOptionAvailable, isProductPurchasable } from "@/lib/products";
 import { useCart } from "./CartProvider";
@@ -25,6 +25,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const activeImage = gallery[current] || product.image;
   const imagePosition = product.image_positions?.[activeImage] || { x: 50, y: 50, zoom: 1 };
 
@@ -32,6 +33,39 @@ export default function ProductCard({ product }: { product: Product }) {
     if (!getCustomerSession()) return;
     getCustomerFavorites().then((ids) => setFavorite(ids.includes(product.id))).catch(() => null);
   }, [product.id]);
+
+  useEffect(() => {
+    if (!galleryOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setGalleryOpen(false);
+        return;
+      }
+
+      if (gallery.length < 2) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        setCurrent((value) => (value - 1 + gallery.length) % gallery.length);
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        setCurrent((value) => (value + 1) % gallery.length);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [gallery.length, galleryOpen]);
 
   async function toggleFavorite() {
     if (!getCustomerSession()) { window.location.href = "/conta"; return; }
@@ -119,6 +153,6 @@ export default function ProductCard({ product }: { product: Product }) {
       {product.notes_enabled !== false && <label className="mt-5 block text-sm font-semibold text-wine-900">Observações <span className="font-normal text-wine-900/50">(opcional)</span><textarea value={notes} onChange={(e)=>setNotes(e.target.value)} placeholder="Ex.: embalagem para presente..." maxLength={250} className="input-pipoka mt-2 min-h-20 w-full font-normal"/></label>}
       {error && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="sticky bottom-0 mt-6 flex items-center justify-between gap-4 rounded-2xl bg-wine-900 p-4 text-white"><div><span className="block text-xs text-white/65">Total</span><strong className="text-2xl">{formatPrice(unitPrice * quantity)}</strong></div><button onClick={addConfigured} className="rounded-full bg-gold-400 px-5 py-3 font-bold text-wine-900">Adicionar ao carrinho</button></div></div></div></div>}
 
-    {galleryOpen && <div className="fixed inset-0 z-[80] grid place-items-center bg-black/85 p-4"><button onClick={()=>setGalleryOpen(false)} className="absolute right-5 top-5 grid h-12 w-12 place-items-center rounded-full bg-white"><X/></button><div className="w-full max-w-4xl"><div className="relative mx-auto aspect-[4/3] overflow-hidden rounded-3xl bg-black"><Image src={activeImage} alt={product.name} fill className="object-contain" unoptimized={activeImage?.startsWith("http")}/>{gallery.length>1&&<><button onClick={()=>setCurrent((current-1+gallery.length)%gallery.length)} className="absolute left-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white"><ChevronLeft/></button><button onClick={()=>setCurrent((current+1)%gallery.length)} className="absolute right-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white"><ChevronRight/></button></>}</div></div></div>}
+    {galleryOpen && <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4" role="presentation"><button type="button" aria-label="Fechar galeria" onClick={()=>setGalleryOpen(false)} className="absolute inset-0 cursor-default bg-black/40"/><div className="relative z-10 w-full max-w-5xl outline-none" role="dialog" aria-modal="true" aria-label={`${product.name} - galeria de fotos`}><div className="relative overflow-hidden rounded-[1.75rem] border border-white/15 bg-zinc-950 p-3 shadow-2xl sm:p-4"><button ref={closeButtonRef} type="button" onClick={()=>setGalleryOpen(false)} aria-label="Fechar galeria" className="absolute right-3 top-3 z-20 grid h-11 w-11 place-items-center rounded-full bg-white text-wine-900 shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"><X size={20}/></button>{gallery.length > 1 && <div className="absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold text-white backdrop-blur">{current + 1} / {gallery.length}</div>}<div className="relative flex min-h-[55vh] items-center justify-center overflow-hidden rounded-[1.25rem] bg-black/95 sm:min-h-[65vh]"><Image src={activeImage} alt={product.name} fill className="object-contain p-2 sm:p-3" unoptimized={activeImage?.startsWith("http")}/>{gallery.length > 1 && <><button type="button" onClick={()=>setCurrent((value)=>(value-1+gallery.length)%gallery.length)} aria-label="Foto anterior" className="absolute left-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white text-wine-900 shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"><ChevronLeft size={20}/></button><button type="button" onClick={()=>setCurrent((value)=>(value+1)%gallery.length)} aria-label="Próxima foto" className="absolute right-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white text-wine-900 shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"><ChevronRight size={20}/></button></>}</div><div className="mt-3 flex items-center justify-between gap-3 px-1 text-sm text-white/75"><p className="truncate font-medium">{product.name}</p>{gallery.length > 1 && <p className="whitespace-nowrap">{current + 1} / {gallery.length}</p>}</div></div></div></div>}
   </>;
 }
