@@ -1,3 +1,5 @@
+﻿import { createClientUuid } from "@/lib/clientUuid";
+
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") || "";
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || "";
 const tokenKey = "pipoka-customer-session";
@@ -178,8 +180,6 @@ async function authFetch(path: string, init: RequestInit = {}, authenticated = f
   }
   return payload;
 }
-
-
 export type SecureCustomerOrderResult = {
   order_code: string;
   tracking_token: string;
@@ -418,7 +418,7 @@ export async function saveCustomerAddress(address: Partial<CustomerAddress>) {
   if (!userId) throw new Error("Sessão inválida. Entre novamente.");
 
   const isDefault = Boolean(address.is_default);
-  const body = { ...address, user_id: userId, id: address.id || crypto.randomUUID(), is_default: isDefault };
+  const body = { ...address, user_id: userId, id: address.id || createClientUuid(), is_default: isDefault };
   const payload = await authFetch(`/rest/v1/customer_addresses?user_id=eq.${encodeURIComponent(userId)}&on_conflict=id`, {
     method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=representation" }, body: JSON.stringify(body),
   }, true);
@@ -475,3 +475,5 @@ export async function linkOrderToCustomer(orderCode: string, trackingToken: stri
   }, true);
   return payload === true;
 }
+
+

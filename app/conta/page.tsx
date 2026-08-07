@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Heart, LogOut, MapPin, Package, RotateCcw, Save, Star, UserRound } from "lucide-react";
 import { useCart } from "@/components/CartProvider";
 import { getProducts } from "@/lib/supabase";
 import type { Product } from "@/lib/products";
+import { createClientUuid } from "@/lib/clientUuid";
 import {
   customerSignIn,
   customerSignOut,
@@ -48,8 +50,9 @@ function firstName(name?: string | null) {
 }
 
 export default function CustomerAccountPage() {
+  const router = useRouter();
   const { addItem } = useCart();
-  const [session, setSession] = useState(() => getCustomerSession());
+  const [session, setSession] = useState<ReturnType<typeof getCustomerSession>>(null);
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [tab, setTab] = useState<Tab>("orders");
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
@@ -91,6 +94,18 @@ export default function CustomerAccountPage() {
   useEffect(() => {
     if (session) load().catch((err) => setError(err instanceof Error ? err.message : "Erro ao carregar sua conta."));
   }, [session]);
+
+  useEffect(() => {
+    setSession(getCustomerSession());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("identifier") || params.has("password")) {
+      router.replace("/conta");
+    }
+  }, [router]);
 
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -198,7 +213,7 @@ export default function CustomerAccountPage() {
     for (const item of order.items || []) {
       const product = products.find((p) => p.id === item.product_id && p.status !== "hidden");
       if (!product) continue;
-      addItem({ ...product, cartId: `${product.id}-${crypto.randomUUID()}`, unitPrice: Number(item.unit_price || product.price), selectedOptions: item.selected_options || [], itemNotes: item.notes || "" }, item.quantity || 1);
+      addItem({ ...product, cartId: `${product.id}-${createClientUuid()}`, unitPrice: Number(item.unit_price || product.price), selectedOptions: item.selected_options || [], itemNotes: item.notes || "" }, item.quantity || 1);
       added++;
     }
     if (added) {
@@ -217,7 +232,7 @@ export default function CustomerAccountPage() {
         <div className="text-center"><UserRound className="mx-auto text-gold-600" size={44}/><h1 className="mt-3 font-serif text-4xl font-bold text-wine-900">Minha conta</h1><p className="mt-2 text-wine-900/60">Entre para finalizar pedidos e acessar seus dados salvos.</p></div>
         {message && <p className="mt-5 rounded-xl bg-green-50 p-3 text-green-800">{message}</p>}
         {error && <p className="mt-5 rounded-xl bg-red-50 p-3 text-red-700">{error}</p>}
-        {mode === "login" && <form onSubmit={handleLogin} className="mt-6 grid gap-4"><input className={field} name="identifier" placeholder="E-mail ou celular" required/><input className={field} name="password" type="password" placeholder="Senha" required/><button className="btn-primary" disabled={busy}>{busy ? "Entrando..." : "Entrar"}</button><button type="button" onClick={() => setMode("forgot")} className="text-sm font-semibold text-wine-700">Esqueci minha senha</button><button type="button" onClick={() => setMode("signup")} className="rounded-2xl border border-wine-700 px-4 py-3 font-semibold text-wine-700">Criar conta</button></form>}
+        {mode === "login" && <form method="post" onSubmit={handleLogin} className="mt-6 grid gap-4"><input className={field} name="identifier" placeholder="E-mail ou celular" required/><input className={field} name="password" type="password" placeholder="Senha" required/><button type="submit" className="btn-primary" disabled={busy}>{busy ? "Entrando..." : "Entrar"}</button><button type="button" onClick={() => setMode("forgot")} className="text-sm font-semibold text-wine-700">Esqueci minha senha</button><button type="button" onClick={() => setMode("signup")} className="rounded-2xl border border-wine-700 px-4 py-3 font-semibold text-wine-700">Criar conta</button></form>}
         {mode === "signup" && <form onSubmit={handleSignup} className="mt-6 grid gap-4"><input className={field} name="name" placeholder="Nome completo" required/><input className={field} name="email" type="email" placeholder="E-mail" required/><input className={field} name="phone" placeholder="Celular com DDD" required/><div className="grid gap-4 sm:grid-cols-2"><input className={field} name="postal_code" placeholder="CEP" required/><input className={field} name="city" placeholder="Cidade" required/></div><input className={field} name="street" placeholder="Rua ou avenida" required/><div className="grid gap-4 sm:grid-cols-2"><input className={field} name="number" placeholder="Número" required/><input className={field} name="complement" placeholder="Complemento"/></div><input className={field} name="neighborhood" placeholder="Bairro" required/><input className={field} name="reference" placeholder="Ponto de referência (opcional)"/><input className={field} name="password" type="password" placeholder="Senha (mínimo 8 caracteres, letra e número)" required/><input className={field} name="confirm" type="password" placeholder="Confirmar senha" required/><label className="flex gap-2 text-sm"><input type="checkbox" required/> Aceito os termos de uso e a política de privacidade.</label><button className="btn-primary" disabled={busy}>Criar conta</button><button type="button" onClick={() => setMode("login")} className="text-sm font-semibold text-wine-700">Já tenho uma conta</button></form>}
         {mode === "forgot" && <form onSubmit={handleForgot} className="mt-6 grid gap-4"><input className={field} name="email" type="email" placeholder="E-mail de cadastro" required/><button className="btn-primary" disabled={busy}>Enviar link de recuperação</button><button type="button" onClick={() => setMode("login")} className="text-sm font-semibold text-wine-700">Voltar ao login</button></form>}
       </div>

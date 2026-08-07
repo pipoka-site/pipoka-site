@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { Bell, Check, PackageCheck, ShoppingBag, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Order } from "@/lib/orders";
 import { orderStatusLabel } from "@/lib/orders";
+import { createClientUuid } from "@/lib/clientUuid";
 
 type NotificationItem = {
   id: string;
@@ -45,14 +46,14 @@ export default function AdminNotifications({ orders, enabled, onOpenOrders }: { 
       const before = previous.current.get(order.id);
       const now = current.get(order.id);
       if (!before && order.status === "new" && !order.deleted_at) {
-        additions.push({ id: crypto.randomUUID(), orderId: order.id, title: `Novo pedido #${order.order_code}`, body: `${order.customer_name} · R$ ${Number(order.total).toFixed(2).replace(".", ",")}`, createdAt: new Date().toISOString(), read: false, kind: "new" });
+        additions.push({ id: createClientUuid(), orderId: order.id, title: `Novo pedido #${order.order_code}`, body: `${order.customer_name} · R$ ${Number(order.total).toFixed(2).replace(".", ",")}`, createdAt: new Date().toISOString(), read: false, kind: "new" });
       } else if (before && before !== now) {
         if (order.deleted_at && !before.split("|")[1]) {
-          additions.push({ id: crypto.randomUUID(), orderId: order.id, title: `Pedido #${order.order_code} excluído`, body: "O pedido foi movido para a área de excluídos.", createdAt: new Date().toISOString(), read: false, kind: "deleted" });
+          additions.push({ id: createClientUuid(), orderId: order.id, title: `Pedido #${order.order_code} excluído`, body: "O pedido foi movido para a área de excluídos.", createdAt: new Date().toISOString(), read: false, kind: "deleted" });
         } else if (order.status === "cancelled" && !before.startsWith("cancelled|")) {
-          additions.push({ id: crypto.randomUUID(), orderId: order.id, title: `Pedido #${order.order_code} cancelado`, body: order.customer_name, createdAt: new Date().toISOString(), read: false, kind: "cancelled" });
+          additions.push({ id: createClientUuid(), orderId: order.id, title: `Pedido #${order.order_code} cancelado`, body: order.customer_name, createdAt: new Date().toISOString(), read: false, kind: "cancelled" });
         } else if (!order.deleted_at) {
-          additions.push({ id: crypto.randomUUID(), orderId: order.id, title: `Pedido #${order.order_code} atualizado`, body: orderStatusLabel[order.status], createdAt: new Date().toISOString(), read: false, kind: "status" });
+          additions.push({ id: createClientUuid(), orderId: order.id, title: `Pedido #${order.order_code} atualizado`, body: orderStatusLabel[order.status], createdAt: new Date().toISOString(), read: false, kind: "status" });
         }
       }
     }
@@ -81,3 +82,6 @@ export default function AdminNotifications({ orders, enabled, onOpenOrders }: { 
     </div>}
   </div>;
 }
+
+
+

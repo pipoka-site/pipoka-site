@@ -7,6 +7,7 @@ import { useCart } from "@/components/CartProvider";
 import { formatPrice } from "@/lib/products";
 import { useStoreData } from "@/hooks/useStoreData";
 import { isStoreCurrentlyOpen } from "@/lib/schedule";
+import { createClientCompactUuid } from "@/lib/clientUuid";
 import {
   createCustomerOrder,
   ensureCustomerAccount,
@@ -35,22 +36,29 @@ function normalizeNotes(value: string) {
 export default function CheckoutPage() {
   const { items, total, changeQuantity, removeItem, clear } = useCart();
   const { settings } = useStoreData();
-  const openNow = isStoreCurrentlyOpen(settings);
+  const [openNow, setOpenNow] = useState(false);
   const [error, setError] = useState("");
   const [delivery, setDelivery] = useState<Fulfillment>(settings.delivery_enabled ? "Entrega" : "Retirada");
   const [couponInput, setCouponInput] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
-  const [session, setSession] = useState(() => getCustomerSession());
-  const [sessionStatus, setSessionStatus] = useState<SessionStatus>(() => (getCustomerSession() ? "checking" : "guest"));
+  const [session, setSession] = useState<ReturnType<typeof getCustomerSession>>(null);
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(null);
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
-  const [loadingAccount, setLoadingAccount] = useState(Boolean(getCustomerSession()));
+  const [loadingAccount, setLoadingAccount] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [changeValue, setChangeValue] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const syncStoreStatus = () => setOpenNow(isStoreCurrentlyOpen(settings));
+    syncStoreStatus();
+    const timer = window.setInterval(syncStoreStatus, 60000);
+    return () => window.clearInterval(timer);
+  }, [settings]);
 
   const selectedAddress = addresses.find((address) => address.id === selectedAddressId) || addresses.find((address) => address.is_default) || addresses[0] || null;
   const fee = delivery === "Entrega" && !(couponApplied && settings.coupon_free_delivery) ? Number(settings.delivery_fee || 0) : 0;
@@ -104,8 +112,14 @@ export default function CheckoutPage() {
         setError("");
       }
     }).catch((err) => {
-      setSessionStatus("guest");
-      setError(err instanceof Error ? err.message : "Não foi possível carregar sua conta.");
+      const message = err instanceof Error ? err.message : "Não foi possível carregar sua conta.";
+      if (/entre na sua conta|sessão expirada|sessão/i.test(message.toLowerCase())) {
+        setSessionStatus("guest");
+        setSession(null);
+      } else {
+        setSessionStatus("authenticated");
+      }
+      setError(message);
     }).finally(() => setLoadingAccount(false));
   }, []);
 
@@ -162,7 +176,7 @@ export default function CheckoutPage() {
     const whatsappNumber = settings.whatsapp_number || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "5500000000000";
     const now = new Date();
     let orderCode = now.getTime().toString().slice(-6);
-    let trackingToken = crypto.randomUUID().replace(/-/g, "");
+    let trackingToken = createClientCompactUuid();
     let trackingUrl = `${window.location.origin}/acompanhar?pedido=${encodeURIComponent(orderCode)}&codigo=${encodeURIComponent(trackingToken)}`;
     const orderDate = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(now);
     const orderTime = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(now);

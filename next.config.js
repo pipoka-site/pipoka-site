@@ -9,6 +9,7 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  allowedDevOrigins: ["192.168.1.247"],
   images: { unoptimized: true },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

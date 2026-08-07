@@ -1044,6 +1044,244 @@ body.admin-page-dark > footer { display: none; }
 .closed-store-banner{margin:1rem;border-radius:1.25rem;background:#5b0716;color:#fff;padding:1rem 1.1rem;display:flex;justify-content:space-between;gap:1rem;align-items:center}.closed-store-banner strong{font-family:Georgia,serif;font-size:1.15rem}.closed-store-banner p{opacity:.82;font-size:.85rem}.closed-store-banner a{background:#f5c542;color:#4a0713;padding:.7rem 1rem;border-radius:999px;font-weight:800;white-space:nowrap}.admin-status-select-v7{border:1px solid;padding:.35rem .55rem;border-radius:.55rem;background:#111;color:#fff;font-weight:700}.admin-status-select-v7.active{color:#39e879;border-color:#197a42}.admin-status-select-v7.out_of_stock{color:#f5c542;border-color:#8f6b12}.admin-status-select-v7.hidden{color:#c4c4c4;border-color:#555}.admin-variation-library-v7{border:1px solid #3b2b16;border-radius:1rem;padding:1rem;background:#111416}.admin-variation-library-v7>p{font-size:.8rem;color:#9ca3af}.admin-variation-library-v7>div{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}.admin-variation-library-v7 button{border:1px solid #b7891f;color:#f5c542;border-radius:.6rem;padding:.55rem .75rem;display:flex;gap:.35rem;align-items:center}.admin-variation-library-v7 button:disabled{opacity:.4}.admin-quick-items-v7{display:grid;gap:1rem;margin:1rem 0}.admin-quick-items-v7 article{display:grid;grid-template-columns:130px 1fr 1fr auto;gap:1rem;align-items:center;border:1px solid #3b2b16;border-radius:1rem;padding:1rem;background:#101315}.admin-quick-preview-v7{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:.75rem;background:#181818}.admin-quick-items-v7 article>div:nth-child(2){display:grid;gap:.4rem}.admin-quick-items-v7 article>button{color:#f5c542}.admin-store-form-v4 .input-pipoka{color:#5b0716!important;background:#f6eeee!important}.product-config-dialog-v5 section{color:#fff}.product-config-dialog-v5 section h3{color:#fff!important}.product-config-dialog-v5 section p{color:#f7d98a!important}.product-config-dialog-v5 section>div.mt-3>div{background:#720d20!important;border-color:#a92a3f!important;color:#fff}.product-config-dialog-v5 textarea{background:#4a0713!important;color:#fff!important;border-color:#d39d2a!important}.mobile-product-item article{height:100%}.mobile-product-item article>div:last-child{display:flex;flex-direction:column}.promo-image img{transition:transform .3s ease}.admin-crop-preview img,.admin-quick-preview-v7 img{transition:object-position .15s ease,transform .15s ease}
 @media(max-width:800px){.admin-quick-items-v7 article{grid-template-columns:1fr}.closed-store-banner{align-items:flex-start;flex-direction:column}}
 
+/* ETAPA 1.1A - ajuste fino mobile (somente celular) */
+@media (max-width: 767px) {
+  .mobile-main-header {
+    min-height: 52px;
+    --mobile-header-height: 52px;
+  }
+
+  .mobile-header-inner.container-pipoka {
+    height: 52px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .mobile-brand {
+    gap: 7px;
+  }
+
+  .mobile-header-logo {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .mobile-header-title {
+    font-size: 14px !important;
+    line-height: 1;
+  }
+
+  .mobile-header-subtitle {
+    margin-top: 0;
+    font-size: 7.5px !important;
+    letter-spacing: .18em;
+    line-height: 1.1;
+  }
+
+  .mobile-header-actions {
+    gap: 2px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .mobile-header-action {
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    display: grid;
+    place-items: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-header-action svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .mobile-header-action .h-5 {
+    height: 16px;
+    min-width: 16px;
+    font-size: 9px;
+  }
+
+  .mobile-header-menu {
+    position: relative;
+    z-index: 54;
+    margin-top: 0;
+    padding-top: 6px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    background: #fff5f0;
+    min-height: 0;
+  }
+
+  .mobile-menu-overlay {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: var(--mobile-header-height);
+    height: calc(100dvh - var(--mobile-header-height));
+    z-index: 70;
+  }
+
+  .mobile-header-menu-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 71;
+    pointer-events: none;
+  }
+
+  .mobile-menu-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 70;
+    background: rgba(16, 7, 10, 0.58);
+    backdrop-filter: blur(1px);
+  }
+
+  .mobile-header-menu-panel {
+    position: relative;
+    z-index: 71;
+    min-height: 0;
+    max-height: calc(100dvh - var(--mobile-header-height));
+    overflow-y: auto;
+    pointer-events: auto;
+  }
+
+  .mobile-header-menu-link {
+    padding-top: 7px;
+    padding-bottom: 7px;
+    line-height: 1.2;
+  }
+
+  .mobile-storefront {
+    padding: 9px 10px 102px;
+  }
+
+  .mobile-status-row {
+    margin: 2px 0 8px;
+  }
+
+  .mobile-search-wrap {
+    margin-bottom: 8px;
+  }
+
+  .mobile-hero {
+    margin-bottom: 10px;
+  }
+
+  .mobile-builder-card,
+  .mobile-section,
+  .review-summary,
+  .review-cards blockquote {
+    margin-top: 9px;
+  }
+
+  .mobile-product-scroller {
+    gap: 9px;
+  }
+
+  .mobile-product-item article {
+    min-height: 530px;
+    border-radius: 1.3rem;
+  }
+
+  .mobile-product-item article > div:last-child {
+    padding: 14px;
+  }
+
+  .mobile-product-item article > div:last-child > button {
+    min-height: 42px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .promo-mobile-card {
+    grid-template-columns: minmax(0, 1.34fr) minmax(94px, .66fr);
+    gap: 7px;
+    min-height: 152px;
+    padding: 8px;
+    border-radius: 14px;
+    margin-top: 6px;
+  }
+
+  .promo-mobile-card > div:first-child {
+    display: grid;
+    align-content: center;
+    gap: 6px;
+  }
+
+  .promo-mobile-card > div:first-child small {
+    font-size: 9px;
+  }
+
+  .promo-mobile-card > div:first-child strong {
+    font-size: .9rem;
+    line-height: 1.15;
+  }
+
+  .promo-mobile-card > div:first-child p {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .promo-mobile-card > div:first-child a {
+    padding: 6px 9px;
+    font-size: 10px;
+  }
+
+  .promo-mobile-card .promo-image {
+    min-height: 120px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .trust-mobile-grid {
+    gap: 8px;
+    margin: 9px 0 8px;
+  }
+
+  .trust-mobile-grid article {
+    min-height: 82px;
+    padding: 10px 8px;
+  }
+
+  .trust-mobile-grid article strong {
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 430px) {
+  .mobile-main-header {
+    --mobile-header-height: 50px;
+  }
+
+  .mobile-header-inner.container-pipoka {
+    height: 50px;
+  }
+
+  .promo-mobile-card {
+    min-height: 142px;
+    grid-template-columns: minmax(0, 1.28fr) minmax(84px, .72fr);
+  }
+
+  .promo-mobile-card .promo-image {
+    min-height: 112px;
+  }
+}
+
+@media (max-width: 360px) {
+  .promo-mobile-card {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .promo-mobile-card .promo-image {
+    min-height: 108px;
+  }
+}
+
 /* PIPOKÁ 8.0 — aviso de loja fechada na entrada */
 .closed-notice-modal{position:fixed;inset:0;z-index:250;display:grid;place-items:center;padding:18px;background:rgba(12,0,3,.82);backdrop-filter:blur(8px)}
 .closed-notice-dialog{position:relative;width:min(100%,460px);padding:34px 24px 24px;border:1px solid rgba(239,189,95,.55);border-radius:28px;background:linear-gradient(160deg,#690b1d 0%,#38040d 72%,#230207 100%);color:#fff7ef;text-align:center;box-shadow:0 28px 90px rgba(0,0,0,.58)}

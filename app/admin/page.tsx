@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -81,6 +81,7 @@ import { isStoreCurrentlyOpen, openingDayLabels } from "@/lib/schedule";
 import { getProductStartingPrice, type Product, type ProductOption, type ProductOptionGroup } from "@/lib/products";
 import { orderStatusLabel, type Order, type OrderStatus } from "@/lib/orders";
 import { calculateDashboardMetrics } from "@/lib/adminMetrics";
+import { createClientUuid } from "@/lib/clientUuid";
 import BusinessIntelligence from "@/components/admin/BusinessIntelligence";
 import AdminNotifications from "@/components/admin/AdminNotifications";
 import AuditPanel from "@/components/admin/AuditPanel";
@@ -523,7 +524,7 @@ export default function AdminPage() {
     const gallery = (product.images?.length ? product.images : [product.image]).filter(Boolean).slice(0, 10);
     const payload = {
       ...product,
-      id: product.id || crypto.randomUUID(),
+      id: product.id || createClientUuid(),
       price: Number(product.price),
       preparation_time: Math.max(1, Number(product.preparation_time || 30)),
       images: gallery,
@@ -655,8 +656,8 @@ export default function AdminPage() {
         max: 1,
         allow_repeated: false,
         options: [
-          { id: crypto.randomUUID(), name: "500 ml (M)", price: 25, active: true },
-          { id: crypto.randomUUID(), name: "1 L (G)", price: 35, active: true },
+          { id: createClientUuid(), name: "500 ml (M)", price: 25, active: true },
+          { id: createClientUuid(), name: "1 L (G)", price: 35, active: true },
         ],
       },
       flavor: {
@@ -667,10 +668,10 @@ export default function AdminPage() {
         max: 1,
         allow_repeated: false,
         options: [
-          { id: crypto.randomUUID(), name: "Chocolate branco", price: 0, active: true },
-          { id: crypto.randomUUID(), name: "Chocolate ao leite", price: 0, active: true },
-          { id: crypto.randomUUID(), name: "Leite Ninho", price: 0, active: true },
-          { id: crypto.randomUUID(), name: "Caramelo", price: 0, active: true },
+          { id: createClientUuid(), name: "Chocolate branco", price: 0, active: true },
+          { id: createClientUuid(), name: "Chocolate ao leite", price: 0, active: true },
+          { id: createClientUuid(), name: "Leite Ninho", price: 0, active: true },
+          { id: createClientUuid(), name: "Caramelo", price: 0, active: true },
         ],
       },
       addon: {
@@ -692,7 +693,7 @@ export default function AdminPage() {
         options: [],
       },
     };
-    const group: ProductOptionGroup = { id: crypto.randomUUID(), ...presets[kind] };
+    const group: ProductOptionGroup = { id: createClientUuid(), ...presets[kind] };
     const nextIndex = (product.option_groups || []).length;
     setProduct((current) => ({ ...current, option_groups: [...(current.option_groups || []), group] }));
     setEditorTab("options");
@@ -712,7 +713,7 @@ export default function AdminPage() {
   }
 
   function addGroupOption(groupIndex: number) {
-    setProduct((current) => ({ ...current, option_groups: (current.option_groups || []).map((group, index) => index === groupIndex ? { ...group, options: [...group.options, { id: crypto.randomUUID(), name: "Nova opção", price: 0, active: true }] } : group) }));
+    setProduct((current) => ({ ...current, option_groups: (current.option_groups || []).map((group, index) => index === groupIndex ? { ...group, options: [...group.options, { id: createClientUuid(), name: "Nova opção", price: 0, active: true }] } : group) }));
   }
 
   function updateGroupOption(groupIndex: number, optionIndex: number, changes: Partial<ProductOption>) {
@@ -736,7 +737,7 @@ export default function AdminPage() {
   }
 
   function addVariationOption() {
-    setVariationDraft((current) => current ? { ...current, options: [...current.options, { id: crypto.randomUUID(), name: "Nova opção", price: 0, active: true, internal_code: "" }] } : current);
+    setVariationDraft((current) => current ? { ...current, options: [...current.options, { id: createClientUuid(), name: "Nova opção", price: 0, active: true, internal_code: "" }] } : current);
   }
 
   function removeVariationOption(optionIndex: number) {
@@ -783,8 +784,8 @@ export default function AdminPage() {
       active: false,
       option_groups: (item.option_groups || []).map((group) => ({
         ...group,
-        id: crypto.randomUUID(),
-        options: group.options.map((option) => ({ ...option, id: crypto.randomUUID() })),
+        id: createClientUuid(),
+        options: group.options.map((option) => ({ ...option, id: createClientUuid() })),
       })),
       quick_add_defaults: {},
     });
@@ -1005,7 +1006,7 @@ export default function AdminPage() {
         {activeSection === "contact" && <section className="admin-store-v4"><div className="admin-section-title-v4"><div><h1>Contato</h1><p>Edite os cartões e os links que abrem WhatsApp, Instagram e mapa.</p></div></div><form onSubmit={saveSettings} className="admin-store-form-v4"><div className="admin-two-cols-v4"><label>Título<input className="input-pipoka" value={settings.contact_title} onChange={event=>setSettings({...settings,contact_title:event.target.value})}/></label><label>Subtítulo<input className="input-pipoka" value={settings.contact_subtitle} onChange={event=>setSettings({...settings,contact_subtitle:event.target.value})}/></label></div><div className="admin-two-cols-v4"><label>Instagram (nome exibido)<input className="input-pipoka" value={settings.instagram_handle} onChange={event=>setSettings({...settings,instagram_handle:event.target.value})}/></label><label>Link do Instagram<input className="input-pipoka" value={settings.instagram_url} onChange={event=>setSettings({...settings,instagram_url:event.target.value})} placeholder="https://instagram.com/seuperfil"/></label></div><label>Texto do WhatsApp<input className="input-pipoka" value={settings.contact_whatsapp_text} onChange={event=>setSettings({...settings,contact_whatsapp_text:event.target.value})}/></label><label>Mensagem automática do WhatsApp<input className="input-pipoka" value={settings.whatsapp_message} onChange={event=>setSettings({...settings,whatsapp_message:event.target.value})}/></label><label>Texto do horário<input className="input-pipoka" value={settings.contact_hours_text} onChange={event=>setSettings({...settings,contact_hours_text:event.target.value})}/></label><label>Texto da retirada<input className="input-pipoka" value={settings.contact_pickup_text} onChange={event=>setSettings({...settings,contact_pickup_text:event.target.value})}/></label><button className="admin-gold-button"><Save size={17}/> Salvar contato</button></form></section>}
 
 
-        {activeSection === "payments" && <section className="admin-store-v4"><div className="admin-section-title-v4"><div><h1>Pagamentos</h1><p>Defina as formas disponíveis para entrega e retirada.</p></div><button type="button" className="admin-gold-button" onClick={()=>setSettings({...settings,payment_options:[...(settings.payment_options||[]),{id:crypto.randomUUID(),name:"Nova forma",active:true,delivery:true,pickup:true,sort_order:(settings.payment_options?.length||0)+1}]})}><Plus/> Nova forma</button></div><form onSubmit={saveSettings} className="admin-store-form-v4"><div className="payments-v10-list">{(settings.payment_options||[]).sort((a,b)=>a.sort_order-b.sort_order).map((option,index)=><article key={option.id}><GripVertical/><label>Nome<input className="input-pipoka" value={option.name} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,name:e.target.value};setSettings({...settings,payment_options:list,payment_methods:list.filter(x=>x.active).map(x=>x.name)});}}/></label><label><input type="checkbox" checked={option.active} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,active:e.target.checked};setSettings({...settings,payment_options:list,payment_methods:list.filter(x=>x.active).map(x=>x.name)});}}/> Ativo</label><label><input type="checkbox" checked={option.delivery} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,delivery:e.target.checked};setSettings({...settings,payment_options:list});}}/> Entrega</label><label><input type="checkbox" checked={option.pickup} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,pickup:e.target.checked};setSettings({...settings,payment_options:list});}}/> Retirada</label><label><input type="checkbox" checked={option.allow_change||false} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,allow_change:e.target.checked};setSettings({...settings,payment_options:list});}}/> Permitir troco</label><button type="button" onClick={()=>setSettings({...settings,payment_options:settings.payment_options.filter(item=>item.id!==option.id)})}><Trash2/></button></article>)}</div><button className="admin-gold-button"><Save/> Salvar pagamentos</button></form></section>}
+        {activeSection === "payments" && <section className="admin-store-v4"><div className="admin-section-title-v4"><div><h1>Pagamentos</h1><p>Defina as formas disponíveis para entrega e retirada.</p></div><button type="button" className="admin-gold-button" onClick={()=>setSettings({...settings,payment_options:[...(settings.payment_options||[]),{id:createClientUuid(),name:"Nova forma",active:true,delivery:true,pickup:true,sort_order:(settings.payment_options?.length||0)+1}]})}><Plus/> Nova forma</button></div><form onSubmit={saveSettings} className="admin-store-form-v4"><div className="payments-v10-list">{(settings.payment_options||[]).sort((a,b)=>a.sort_order-b.sort_order).map((option,index)=><article key={option.id}><GripVertical/><label>Nome<input className="input-pipoka" value={option.name} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,name:e.target.value};setSettings({...settings,payment_options:list,payment_methods:list.filter(x=>x.active).map(x=>x.name)});}}/></label><label><input type="checkbox" checked={option.active} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,active:e.target.checked};setSettings({...settings,payment_options:list,payment_methods:list.filter(x=>x.active).map(x=>x.name)});}}/> Ativo</label><label><input type="checkbox" checked={option.delivery} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,delivery:e.target.checked};setSettings({...settings,payment_options:list});}}/> Entrega</label><label><input type="checkbox" checked={option.pickup} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,pickup:e.target.checked};setSettings({...settings,payment_options:list});}}/> Retirada</label><label><input type="checkbox" checked={option.allow_change||false} onChange={e=>{const list=[...settings.payment_options];list[index]={...option,allow_change:e.target.checked};setSettings({...settings,payment_options:list});}}/> Permitir troco</label><button type="button" onClick={()=>setSettings({...settings,payment_options:settings.payment_options.filter(item=>item.id!==option.id)})}><Trash2/></button></article>)}</div><button className="admin-gold-button"><Save/> Salvar pagamentos</button></form></section>}
         {activeSection === "store-texts" && <section className="admin-store-v4">
           <div className="admin-section-title-v4"><div><h1>Aparência e textos</h1><p>Edite os textos principais exibidos no site.</p></div></div>
           <form onSubmit={saveSettings} className="admin-store-form-v4">
@@ -1053,7 +1054,7 @@ export default function AdminPage() {
           </form>
         </section>}
 
-        {activeSection === "quick-purchase" && <section className="admin-store-v4"><header><div><h1>Compra rápida</h1><p>Selecione produtos já cadastrados e ajuste somente a apresentação dessa seção.</p></div></header><form onSubmit={saveSettings}><div className="admin-quick-selector-v7"><label>Adicionar produto existente<select className="input-pipoka" defaultValue="" onChange={event=>{const selected=products.find(item=>item.id===event.target.value);if(!selected)return;const existing=(settings.quick_purchase_items||[]).some(item=>item.product_id===selected.id);if(!existing)setSettings({...settings,quick_purchase_items:[...(settings.quick_purchase_items||[]),{id:crypto.randomUUID(),product_id:selected.id,image:selected.image,image_position:{x:50,y:50,zoom:1},status:"active",sort_order:(settings.quick_purchase_items?.length||0)+1}]});event.target.value="";}}><option value="">Escolha um produto...</option>{products.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div><div className="admin-quick-items-v7">{(settings.quick_purchase_items||[]).sort((a,b)=>a.sort_order-b.sort_order).map((item,index)=>{const linked=products.find(product=>product.id===item.product_id);if(!linked)return null;const pos=item.image_position||{x:50,y:50,zoom:1};return <article key={item.id}><div className="admin-quick-preview-v7">{(item.image||linked.image)&&<Image src={item.image||linked.image} alt={linked.name} fill className="object-cover" style={{objectPosition:`${pos.x}% ${pos.y}%`,transform:`scale(${pos.zoom})`,transformOrigin:`${pos.x}% ${pos.y}%`}} unoptimized={(item.image||linked.image).startsWith("http")}/>}</div><div><strong>{linked.name}</strong><span>R$ {Number(linked.price).toFixed(2).replace(".",",")}</span><select className="input-pipoka" value={item.status} onChange={event=>{const items=[...(settings.quick_purchase_items||[])];items[index]={...item,status:event.target.value as "active"|"out_of_stock"|"hidden"};setSettings({...settings,quick_purchase_items:items});}}><option value="active">Ativo</option><option value="out_of_stock">Indisponível</option><option value="hidden">Oculto</option></select></div><div className="admin-image-controls"><label>Horizontal<input type="range" min="0" max="100" value={pos.x} onChange={event=>{const items=[...(settings.quick_purchase_items||[])];items[index]={...item,image_position:{...pos,x:Number(event.target.value)}};setSettings({...settings,quick_purchase_items:items});}}/></label><label>Vertical<input type="range" min="0" max="100" value={pos.y} onChange={event=>{const items=[...(settings.quick_purchase_items||[])];items[index]={...item,image_position:{...pos,y:Number(event.target.value)}};setSettings({...settings,quick_purchase_items:items});}}/></label><label>Zoom<input type="range" min="1" max="2" step="0.05" value={pos.zoom} onChange={event=>{const items=[...(settings.quick_purchase_items||[])];items[index]={...item,image_position:{...pos,zoom:Number(event.target.value)}};setSettings({...settings,quick_purchase_items:items});}}/></label></div><button type="button" onClick={()=>setSettings({...settings,quick_purchase_items:(settings.quick_purchase_items||[]).filter(candidate=>candidate.id!==item.id)})}><Trash2/></button></article>})}</div><button className="admin-gold-button" disabled={busy}><Save/> Salvar compra rápida</button></form></section>}
+        {activeSection === "quick-purchase" && <section className="admin-store-v4"><header><div><h1>Compra rápida</h1><p>Selecione produtos já cadastrados e ajuste somente a apresentação dessa seção.</p></div></header><form onSubmit={saveSettings}><div className="admin-quick-selector-v7"><label>Adicionar produto existente<select className="input-pipoka" defaultValue="" onChange={event=>{const selected=products.find(item=>item.id===event.target.value);if(!selected)return;const existing=(settings.quick_purchase_items||[]).some(item=>item.product_id===selected.id);if(!existing)setSettings({...settings,quick_purchase_items:[...(settings.quick_purchase_items||[]),{id:createClientUuid(),product_id:selected.id,image:selected.image,image_position:{x:50,y:50,zoom:1},status:"active",sort_order:(settings.quick_purchase_items?.length||0)+1}]});event.target.value="";}}><option value="">Escolha um produto...</option>{products.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div><div className="admin-quick-items-v7">{(settings.quick_purchase_items||[]).sort((a,b)=>a.sort_order-b.sort_order).map((item,index)=>{const linked=products.find(product=>product.id===item.product_id);if(!linked)return null;const pos=item.image_position||{x:50,y:50,zoom:1};return <article key={item.id}><div className="admin-quick-preview-v7">{(item.image||linked.image)&&<Image src={item.image||linked.image} alt={linked.name} fill className="object-cover" style={{objectPosition:`${pos.x}% ${pos.y}%`,transform:`scale(${pos.zoom})`,transformOrigin:`${pos.x}% ${pos.y}%`}} unoptimized={(item.image||linked.image).startsWith("http")}/>}</div><div><strong>{linked.name}</strong><span>R$ {Number(linked.price).toFixed(2).replace(".",",")}</span><select className="input-pipoka" value={item.status} onChange={event=>{const items=[...(settings.quick_purchase_items||[])];items[index]={...item,status:event.target.value as "active"|"out_of_stock"|"hidden"};setSettings({...settings,quick_purchase_items:items});}}><option value="active">Ativo</option><option value="out_of_stock">Indisponível</option><option value="hidden">Oculto</option></select></div><div className="admin-image-controls"><label>Horizontal<input type="range" min="0" max="100" value={pos.x} onChange={event=>{const items=[...(settings.quick_purchase_items||[])];items[index]={...item,image_position:{...pos,x:Number(event.target.value)}};setSettings({...settings,quick_purchase_items:items});}}/></label><label>Vertical<input type="range" min="0" max="100" value={pos.y} onChange={event=>{const items=[...(settings.quick_purchase_items||[])];items[index]={...item,image_position:{...pos,y:Number(event.target.value)}};setSettings({...settings,quick_purchase_items:items});}}/></label><label>Zoom<input type="range" min="1" max="2" step="0.05" value={pos.zoom} onChange={event=>{const items=[...(settings.quick_purchase_items||[])];items[index]={...item,image_position:{...pos,zoom:Number(event.target.value)}};setSettings({...settings,quick_purchase_items:items});}}/></label></div><button type="button" onClick={()=>setSettings({...settings,quick_purchase_items:(settings.quick_purchase_items||[]).filter(candidate=>candidate.id!==item.id)})}><Trash2/></button></article>})}</div><button className="admin-gold-button" disabled={busy}><Save/> Salvar compra rápida</button></form></section>}
 
         {activeSection === "products" && <section className="admin-products-layout-v4">
           <div className="admin-products-column-v4">
@@ -1116,3 +1117,6 @@ export default function AdminPage() {
     </div>
   );
 }
+
+
+

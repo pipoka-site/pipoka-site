@@ -1,4 +1,5 @@
-import { validateProductImage } from "@/lib/uploadValidation";
+﻿import { validateProductImage } from "@/lib/uploadValidation";
+import { createClientUuid } from "@/lib/clientUuid";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") || "";
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || "";
 const tokenKey = "pipoka-admin-token";
@@ -280,7 +281,7 @@ export async function uploadProductImage(file: File) {
       ?.toLowerCase()
       .replace(/[^a-z0-9]/g, "") || "jpg";
 
-  const safeName = `${crypto.randomUUID()}.${extension}`;
+  const safeName = `${createClientUuid()}.${extension}`;
 
   const response = await fetch(
     `${url}/storage/v1/object/product-images/${safeName}`,
@@ -356,8 +357,6 @@ export async function updateOrder(id: string, changes: unknown) {
 
   return Array.isArray(payload) ? payload[0] || null : payload;
 }
-
-
 export async function getTrackedOrder(orderCode: string, trackingToken: string) {
   const payload = await request("/rest/v1/rpc/track_order", {
     method: "POST",
@@ -517,3 +516,5 @@ export async function updateCustomerReview(id: string, changes: Partial<Pick<Cus
   }, { auth: true });
   return Array.isArray(payload) ? payload[0] || null : payload;
 }
+
+

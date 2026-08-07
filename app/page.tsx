@@ -15,7 +15,7 @@ const fallbackBanners = [
 
 export default function Home() {
   const { products, settings, loading } = useStoreData();
-  const openNow = isStoreCurrentlyOpen(settings);
+  const [openNow, setOpenNow] = useState(false);
   const banners = useMemo(() => {
     const custom = (settings as any).banner_images as string[] | undefined;
     return custom?.filter(Boolean).slice(0, 10).length ? custom!.filter(Boolean).slice(0, 10) : fallbackBanners;
@@ -24,6 +24,13 @@ export default function Home() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewSent, setReviewSent] = useState(false);
   const [closedNoticeOpen, setClosedNoticeOpen] = useState(false);
+
+  useEffect(() => {
+    const syncStoreStatus = () => setOpenNow(isStoreCurrentlyOpen(settings));
+    syncStoreStatus();
+    const timer = window.setInterval(syncStoreStatus, 60000);
+    return () => window.clearInterval(timer);
+  }, [settings]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setSlide((value) => (value + 1) % banners.length), 5000);
