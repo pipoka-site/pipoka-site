@@ -46,7 +46,7 @@ export default function Header() {
             <ShoppingBag size={23} />
             {count > 0 && <span className="absolute right-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-gold-500 px-1 text-[11px] font-bold text-wine-900">{count}</span>}
           </Link>
-          <button onClick={() => setOpen(!open)} className="mobile-header-action mobile-header-toggle rounded-full p-3 text-wine-700 md:hidden" aria-label="Abrir menu">{open ? <X /> : <Menu />}</button>
+          <button onClick={() => setOpen(!open)} className="mobile-header-action mobile-header-toggle rounded-full p-3 text-wine-700 md:hidden" aria-label={open ? "Fechar menu" : "Abrir menu"}>{open ? <X /> : <Menu />}</button>
         </div>
       </div>
       {open && (

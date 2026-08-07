@@ -107,6 +107,32 @@ export default function CustomerAccountPage() {
     }
   }, [router]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!session || !orders.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const reviewOrderCode = params.get("reviewOrder") || "";
+    if (!reviewOrderCode) return;
+
+    const reviewedKey = `pipoka-reviewed-order:${reviewOrderCode}`;
+    if (localStorage.getItem(reviewedKey) === "1") {
+      params.delete("reviewOrder");
+      const nextQuery = params.toString();
+      router.replace(nextQuery ? `/conta?${nextQuery}` : "/conta");
+      return;
+    }
+
+    const targetOrder = orders.find((order) => order.order_code === reviewOrderCode && order.status === "completed");
+    if (!targetOrder) return;
+
+    setTab("orders");
+    setReviewing(targetOrder);
+    params.delete("reviewOrder");
+    const nextQuery = params.toString();
+    router.replace(nextQuery ? `/conta?${nextQuery}` : "/conta");
+  }, [orders, router, session]);
+
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true); setError(""); setMessage("");
@@ -138,8 +164,9 @@ export default function CustomerAccountPage() {
         neighborhood: String(data.get("neighborhood") || ""), city: String(data.get("city") || ""),
         reference: String(data.get("reference") || ""),
       });
-      if (result?.access_token) {
-        setSession(result);
+      const signupSession = result?.access_token ? result : result?.session;
+      if (signupSession?.access_token) {
+        setSession(signupSession);
         await ensureCustomerAccount().catch(() => null);
         const destination = nextPath() || "/";
         window.setTimeout(() => { window.location.href = destination; }, 250);
@@ -270,7 +297,7 @@ export default function CustomerAccountPage() {
 
       {tab === "favorites" && <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{favoriteProducts.length === 0 ? <div className={card}><p>Você ainda não favoritou produtos.</p></div> : favoriteProducts.map((product) => <article key={product.id} className={card}><h2 className="font-serif text-2xl font-bold">{product.name}</h2><p className="mt-2 text-sm text-wine-900/60">{product.description}</p><button onClick={async () => { await toggleCustomerFavorite(product.id, false); await load(); }} className="mt-4 inline-flex items-center gap-2 text-wine-700"><Heart fill="currentColor" size={18}/> Remover dos favoritos</button></article>)}</section>}
 
-      {reviewing && <div className="fixed inset-0 z-[90] grid place-items-center bg-black/55 p-4"><form onSubmit={async (e) => { e.preventDefault(); const d = new FormData(e.currentTarget); await submitOrderReview(reviewing.id, Number(d.get('rating')), String(d.get('comment') || '')); setReviewing(null); setMessage('Obrigado pela sua avaliação!'); }} className="w-full max-w-md rounded-[2rem] bg-white p-6"><h2 className="font-serif text-3xl font-bold">Como foi sua experiência?</h2><select name="rating" className={`${field} mt-5`} defaultValue="5"><option value="5">★★★★★ Excelente</option><option value="4">★★★★ Muito boa</option><option value="3">★★★ Boa</option><option value="2">★★ Pode melhorar</option><option value="1">★ Ruim</option></select><textarea name="comment" className={`${field} mt-4 min-h-28`} placeholder="Conte como foi seu pedido (opcional)"/><div className="mt-5 flex gap-2"><button className="btn-primary flex-1">Enviar avaliação</button><button type="button" onClick={() => setReviewing(null)} className="rounded-xl border px-4">Agora não</button></div></form></div>}
+      {reviewing && <div className="fixed inset-0 z-[90] grid place-items-center bg-black/55 p-4"><form onSubmit={async (e) => { e.preventDefault(); const d = new FormData(e.currentTarget); await submitOrderReview(reviewing.id, Number(d.get('rating')), String(d.get('comment') || '')); localStorage.setItem(`pipoka-reviewed-order:${reviewing.order_code}`, "1"); setReviewing(null); setMessage('Obrigado pela sua avaliação!'); }} className="w-full max-w-md rounded-[2rem] bg-white p-6"><h2 className="font-serif text-3xl font-bold">Como foi sua experiência?</h2><select name="rating" className={`${field} mt-5`} defaultValue="5"><option value="5">★★★★★ Excelente</option><option value="4">★★★★ Muito boa</option><option value="3">★★★ Boa</option><option value="2">★★ Pode melhorar</option><option value="1">★ Ruim</option></select><textarea name="comment" className={`${field} mt-4 min-h-28`} placeholder="Conte como foi seu pedido (opcional)"/><div className="mt-5 flex gap-2"><button className="btn-primary flex-1">Enviar avaliação</button><button type="button" onClick={() => setReviewing(null)} className="rounded-xl border px-4">Agora não</button></div></form></div>}
     </main>
   );
 }

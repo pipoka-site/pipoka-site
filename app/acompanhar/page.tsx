@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Bell, Check, ChefHat, Clock3, Package, ShieldCheck, Truck } from "lucide-react";
+import { Bell, Check, ChefHat, Clock3, Package, ShieldCheck, Truck, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { OrderStatus } from "@/lib/orders";
+import { getCustomerSession, hasCustomerReviewForOrderCode } from "@/lib/customerAuth";
 import { getSettings, getTrackedOrder } from "@/lib/supabase";
 import { defaultSettings } from "@/lib/store";
 
@@ -41,6 +42,8 @@ function TrackingContent() {
   const [loading, setLoading] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [estimated, setEstimated] = useState({ min: 30, max: 40 });
+  const [reviewInviteOpen, setReviewInviteOpen] = useState(false);
+  const [reviewInviteChecking, setReviewInviteChecking] = useState(false);
   const previousStatus = useRef<OrderStatus | null>(null);
 
   const steps = useMemo(() => order?.fulfillment === "Retirada"
@@ -111,6 +114,58 @@ function TrackingContent() {
     return () => { window.clearInterval(id); document.removeEventListener("visibilitychange", tick); };
   }, [order?.order_code, token]);
 
+  useEffect(() => {
+    if (!order || order.status !== "completed") {
+      setReviewInviteOpen(false);
+      return;
+    }
+
+    const dismissedKey = `pipoka-review-invite-dismissed:${order.order_code}`;
+    const reviewedKey = `pipoka-reviewed-order:${order.order_code}`;
+    if (sessionStorage.getItem(dismissedKey) === "1") return;
+    if (localStorage.getItem(reviewedKey) === "1") return;
+
+    let cancelled = false;
+    const session = getCustomerSession();
+    if (!session) {
+      setReviewInviteOpen(true);
+      return;
+    }
+
+    setReviewInviteChecking(true);
+    hasCustomerReviewForOrderCode(order.order_code)
+      .then((hasReview) => {
+        if (cancelled) return;
+        if (hasReview) {
+          localStorage.setItem(reviewedKey, "1");
+          return;
+        }
+        setReviewInviteOpen(true);
+      })
+      .catch(() => {
+        if (!cancelled) setReviewInviteOpen(true);
+      })
+      .finally(() => {
+        if (!cancelled) setReviewInviteChecking(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [order?.order_code, order?.status]);
+
+  function closeReviewInvite() {
+    if (!order) return;
+    sessionStorage.setItem(`pipoka-review-invite-dismissed:${order.order_code}`, "1");
+    setReviewInviteOpen(false);
+  }
+
+  function goToReviewFlow() {
+    if (!order) return;
+    sessionStorage.setItem(`pipoka-review-invite-dismissed:${order.order_code}`, "1");
+    window.location.href = `/conta?reviewOrder=${encodeURIComponent(order.order_code)}`;
+  }
+
   function submit(event: FormEvent) { event.preventDefault(); void load(); }
   const current = order?.status || "new";
   const statusInfo = current === "new" ? { icon: "🍿", title: "Pedido recebido!", text: "Aguardando a confirmação da PIPOKÁ." }
@@ -158,6 +213,8 @@ function TrackingContent() {
       <footer className="tracking-help-pro"><div><h3>Precisa de ajuda?</h3><p>Fale com a gente no WhatsApp!</p></div><a href={whatsapp} target="_blank" rel="noreferrer">Conversar</a></footer>
       <p className="tracking-security-pro"><ShieldCheck size={19}/> Seus dados estão protegidos e seu pedido está seguro com a gente.</p>
     </>}
+
+    {order?.status === "completed" && reviewInviteOpen && !reviewInviteChecking && <div className="fixed inset-0 z-[90] grid place-items-end bg-black/45 p-4 sm:place-items-center"><div className="w-full max-w-md rounded-[1.4rem] border border-gold-500/45 bg-wine-950 p-5 text-cream shadow-2xl"><button type="button" aria-label="Fechar convite de avaliação" onClick={closeReviewInvite} className="ml-auto grid h-9 w-9 place-items-center rounded-full bg-white/10 text-cream"><X size={18}/></button><h2 className="mt-1 font-serif text-2xl font-bold text-gold-300">Como foi seu pedido?</h2><p className="mt-2 text-sm text-cream/85">Seu pedido foi concluído. Quer deixar uma avaliação rápida para a PIPOKÁ?</p><div className="mt-4 flex gap-2"><button type="button" onClick={goToReviewFlow} className="flex-1 rounded-full bg-gold-400 px-4 py-2.5 font-semibold text-wine-900">Avaliar agora</button><button type="button" onClick={closeReviewInvite} className="rounded-full border border-gold-500/45 px-4 py-2.5 text-sm font-semibold text-cream">Depois</button></div></div></div>}
   </div></section>;
 }
 

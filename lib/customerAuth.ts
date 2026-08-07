@@ -240,7 +240,9 @@ export async function customerSignUp(input: { email: string; password: string; f
     }),
   });
   if (payload && typeof payload === "object") {
-    const session = payload as CustomerSession;
+    const source = payload as Record<string, unknown>;
+    const nestedSession = source.session && typeof source.session === "object" ? source.session as CustomerSession : null;
+    const session = (nestedSession?.access_token ? nestedSession : payload as CustomerSession);
     if (session.access_token) {
       save(session);
       try {
@@ -462,10 +464,19 @@ export async function toggleCustomerFavorite(productId: string, active: boolean)
 }
 
 export async function submitOrderReview(orderId: string, rating: number, comment: string) {
+  const parsedRating = Number.isFinite(rating) ? Math.trunc(rating) : 0;
+  const safeRating = Math.max(1, Math.min(5, parsedRating));
   return authFetch("/rest/v1/customer_reviews?on_conflict=order_id", {
     method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-    body: JSON.stringify({ order_id: orderId, rating, comment: comment.trim() || null }),
+    body: JSON.stringify({ order_id: orderId, rating: safeRating, comment: comment.trim() || null, status: "pending", visible: false }),
   }, true);
+}
+
+export async function hasCustomerReviewForOrderCode(orderCode: string) {
+  const safeOrderCode = orderCode.trim();
+  if (!safeOrderCode) return false;
+  const payload = await authFetch(`/rest/v1/customer_reviews?select=id,orders!inner(order_code)&orders.order_code=eq.${encodeURIComponent(safeOrderCode)}&limit=1`, {}, true);
+  return Array.isArray(payload) && payload.length > 0;
 }
 
 export async function linkOrderToCustomer(orderCode: string, trackingToken: string) {

@@ -51,7 +51,6 @@ export default function CheckoutPage() {
   const [changeValue, setChangeValue] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     const syncStoreStatus = () => setOpenNow(isStoreCurrentlyOpen(settings));
@@ -82,14 +81,12 @@ export default function CheckoutPage() {
   }, [delivery, settings.payment_options, settings.payment_methods]);
   const selectedPaymentOption = paymentOptions.find((option) => option.name === paymentMethod) || paymentOptions[0] || null;
   const isCashPayment = selectedPaymentOption?.id === "dinheiro" || /dinheiro/i.test(selectedPaymentOption?.name || "");
+  const hasChangeValue = changeValue.trim().length > 0;
+  const parsedChangeValue = parseMoneyInput(changeValue);
   const profileComplete = Boolean(customerProfile?.full_name?.trim() && customerProfile?.phone?.trim());
-  const canSubmit = !submitting && openNow && items.length > 0 && modes.length > 0 && profileComplete && (!loadingAccount && sessionStatus === "authenticated") && Boolean(paymentMethod) && (!isCashPayment || !Number.isNaN(parseMoneyInput(changeValue)) && parseMoneyInput(changeValue) >= grandTotal) && (delivery !== "Entrega" || Boolean(selectedAddress));
+  const canSubmit = !submitting && openNow && items.length > 0 && modes.length > 0 && profileComplete && (!loadingAccount && sessionStatus === "authenticated") && Boolean(paymentMethod) && (!isCashPayment || !hasChangeValue || (!Number.isNaN(parsedChangeValue) && parsedChangeValue >= grandTotal)) && (delivery !== "Entrega" || Boolean(selectedAddress));
 
   useEffect(() => {
-    if (sessionStorage.getItem("pipoka-checkout-submitted") === "1") {
-      setSubmitted(true);
-    }
-
     const current = getCustomerSession();
     setSession(current);
     if (!current) {
@@ -151,7 +148,7 @@ export default function CheckoutPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting || submitted) return;
+    if (submitting) return;
     setError("");
 
     if (!session || sessionStatus !== "authenticated") return setError("Entre na sua conta para finalizar o pedido.");
@@ -167,9 +164,12 @@ export default function CheckoutPage() {
     if (!selectedPayment) return setError("Selecione uma forma de pagamento disponível.");
 
     if (isCashPayment) {
-      const parsed = parseMoneyInput(changeValue);
-      if (Number.isNaN(parsed)) return setError("Informe o valor do troco para pagamento em dinheiro.");
-      if (parsed < grandTotal) return setError(`O troco precisa ser igual ou maior que ${formatPrice(grandTotal)}.`);
+      const rawChange = changeValue.trim();
+      if (rawChange) {
+        const parsed = parseMoneyInput(rawChange);
+        if (Number.isNaN(parsed)) return setError("Informe um valor válido para o troco ou deixe em branco para pagamento exato.");
+        if (parsed < grandTotal) return setError(`O troco precisa ser igual ou maior que ${formatPrice(grandTotal)}.`);
+      }
     }
 
     const notesValue = normalizeNotes(notes);
@@ -254,8 +254,6 @@ export default function CheckoutPage() {
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
       if (whatsappWindow) whatsappWindow.location.href = whatsappUrl; else window.location.href = whatsappUrl;
       try { localStorage.setItem("pipoka-last-order", JSON.stringify({ orderCode, trackingToken })); } catch {}
-      sessionStorage.setItem("pipoka-checkout-submitted", "1");
-      setSubmitted(true);
       clear();
       window.setTimeout(() => { window.location.href = trackingUrl; }, 350);
     } catch (orderError) {
@@ -298,7 +296,7 @@ export default function CheckoutPage() {
           {settings.coupon_enabled && <div className="mt-6 rounded-2xl border border-gold-500/25 bg-gold-50/60 p-4"><label className="text-sm font-semibold text-wine-900">Tem um cupom?</label><div className="mt-2 flex flex-col gap-2 sm:flex-row"><input value={couponInput} onChange={(event) => { setCouponInput(event.target.value.toUpperCase()); setCouponApplied(false); }} placeholder="Digite o código" className="input-pipoka flex-1 uppercase"/><button type="button" onClick={() => { const codeMatches = couponInput.trim().toUpperCase() === settings.coupon_code.trim().toUpperCase(); const minimumMet = total >= Number(settings.coupon_minimum_value || 0); const valid = codeMatches && minimumMet; setCouponApplied(valid); setError(valid ? `Cupom aplicado: ${settings.coupon_discount_percent}% de desconto${settings.coupon_free_delivery ? " e entrega grátis" : ""}!` : codeMatches ? `Este cupom exige pedido mínimo de ${formatPrice(Number(settings.coupon_minimum_value || 0))}.` : "Cupom inválido."); }} className="btn-secondary !px-4">Aplicar</button></div>{couponApplied && <p className="mt-2 text-sm font-semibold text-green-700">Desconto aplicado com sucesso.</p>}</div>}
           <div className="mt-6 space-y-2 border-t pt-5 text-sm"><div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(total)}</span></div>{couponApplied && <div className="flex justify-between font-semibold text-green-700"><span>Desconto ({settings.coupon_code})</span><span>-{formatPrice(discount)}</span></div>}<div className="flex justify-between"><span>{delivery === "Entrega" ? "Taxa de entrega" : "Retirada grátis"}</span><span>{fee ? formatPrice(fee) : "Grátis"}</span></div><div className="flex items-center justify-between pt-2 text-base"><span className="font-semibold">Total</span><strong className="text-2xl text-wine-700">{formatPrice(grandTotal)}</strong></div></div>
           {!openNow && <p className="mt-3 rounded-xl bg-gold-50 p-3 text-sm text-wine-800">{settings.closed_message}</p>}{error && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          <button disabled={!canSubmit || submitted} className="btn-primary mt-6 min-h-12 w-full disabled:cursor-not-allowed disabled:opacity-50" type="submit">{submitting ? "Enviando..." : submitted ? "Pedido em andamento" : "Confirmar e enviar pelo WhatsApp"}</button>
+          <button disabled={!canSubmit} className="btn-primary mt-6 min-h-12 w-full disabled:cursor-not-allowed disabled:opacity-50" type="submit">{submitting ? "Enviando..." : "Confirmar e enviar pelo WhatsApp"}</button>
           <p className="mt-3 text-center text-xs text-wine-900/50">Seus dados são carregados da sua conta e não precisam ser digitados novamente.</p>
         </form>}
       </div>

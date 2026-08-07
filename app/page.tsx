@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Clock3, Flame, Gift, Search, Sparkles, Star, Truck, UserRound, X } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Clock3, Flame, Gift, Search, Sparkles, Star, Truck, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { useStoreData } from "@/hooks/useStoreData";
 import { isStoreCurrentlyOpen } from "@/lib/schedule";
+import { getPublicApprovedCustomerReviews, type PublicApprovedReview } from "@/lib/supabase";
 
 const fallbackBanners = [
   "/banners/banner-01.jpeg", "/banners/banner-02.jpeg", "/banners/banner-03.jpeg",
@@ -21,9 +22,9 @@ export default function Home() {
     return custom?.filter(Boolean).slice(0, 10).length ? custom!.filter(Boolean).slice(0, 10) : fallbackBanners;
   }, [settings]);
   const [slide, setSlide] = useState(0);
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const [reviewSent, setReviewSent] = useState(false);
+  const [approvedReviews, setApprovedReviews] = useState<PublicApprovedReview[]>([]);
   const [closedNoticeOpen, setClosedNoticeOpen] = useState(false);
+  const [loadingReviews, setLoadingReviews] = useState(true);
   const bannerTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   function nextSlide() {
@@ -70,9 +71,54 @@ export default function Home() {
     }
   }, [loading, openNow, settings.closed_banner_enabled]);
 
-  function submitReview(event: FormEvent) {
-    event.preventDefault();
-    setReviewSent(true);
+  useEffect(() => {
+    let mounted = true;
+    setLoadingReviews(true);
+    getPublicApprovedCustomerReviews(0)
+      .then((list) => {
+        if (mounted) setApprovedReviews(list);
+      })
+      .catch((error) => {
+        console.error("[Home Reviews] Falha ao carregar avaliações aprovadas:", error);
+        if (mounted) setApprovedReviews([]);
+      })
+      .finally(() => {
+        if (mounted) setLoadingReviews(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const approvedCount = approvedReviews.length;
+  const ratingTotal = approvedReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0);
+  const ratingAverage = approvedCount ? ratingTotal / approvedCount : 0;
+  const approvedCountLabel = `${approvedCount} ${approvedCount === 1 ? "avaliação" : "avaliações"}`;
+  const distribution = approvedReviews.reduce((map, review) => {
+    const rating = Math.max(1, Math.min(5, Math.trunc(Number(review.rating) || 0)));
+    map[rating] += 1;
+    return map;
+  }, { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } as Record<number, number>);
+
+  const featuredReviews = [...approvedReviews]
+    .filter((review) => review.featured === true)
+    .sort((a, b) => {
+      const orderA = Number.isFinite(Number(a.display_order)) ? Number(a.display_order) : 999;
+      const orderB = Number.isFinite(Number(b.display_order)) ? Number(b.display_order) : 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    })
+    .slice(0, 4);
+
+  const visibleReviews = featuredReviews.length > 0
+    ? featuredReviews
+    : approvedReviews.slice(0, 4);
+
+  function reviewDisplayName(review: PublicApprovedReview) {
+    const publicName = review.public_name?.trim();
+    if (publicName) return publicName;
+    return "Cliente";
   }
 
   return <div className="mobile-storefront">
@@ -127,13 +173,22 @@ export default function Home() {
     </section>
 
     <section className="mobile-section reviews-mobile">
-      <div className="mobile-section-title"><div><Star size={20} fill="currentColor"/><h2>Avaliações</h2></div><button onClick={() => { setReviewOpen(true); setReviewSent(false); }}>Avaliar</button></div>
-      <div className="review-summary"><strong>4,9</strong><div><div>★★★★★</div><span>Clientes que provaram e amaram</span></div></div>
-      <div className="review-cards"><blockquote>“A pipoca chegou linda, crocante e muito saborosa!”<cite>— Cliente PIPOKÁ</cite></blockquote><blockquote>“Embalagem caprichada e sabores maravilhosos.”<cite>— Cliente PIPOKÁ</cite></blockquote></div>
+      <div className="mobile-section-title"><div><Star size={20} fill="currentColor"/><h2>Avaliações</h2></div><Link href="/conta" className="inline-flex items-center justify-center rounded-full border border-wine-700 px-3 py-1.5 text-xs font-semibold text-wine-700">Avaliar</Link></div>
+      <div className="review-summary">
+        <strong>{ratingAverage.toFixed(1)}</strong>
+        <div>
+          <div>{"★".repeat(Math.max(1, Math.min(5, Math.round(ratingAverage) || 0)))}</div>
+          <span>{approvedCountLabel} aprovadas</span>
+        </div>
+      </div>
+      <div className="review-distribution" aria-label="Distribuição das avaliações">
+        {[5, 4, 3, 2, 1].map((rating) => <p key={rating}><span>{rating} estrelas</span><b>{distribution[rating]}</b></p>)}
+      </div>
+      <div className="review-cards">{loadingReviews ? <p className="review-empty">Carregando avaliações...</p> : approvedReviews.length === 0 ? <p className="review-empty">Ainda não há avaliações aprovadas.</p> : visibleReviews.map((review) => <article className="review-approved-card" key={review.id}><div className="review-approved-head"><strong>{reviewDisplayName(review)}</strong><span>{new Date(review.created_at).toLocaleDateString("pt-BR")}</span></div><div className="review-approved-stars">{Array.from({ length: Math.max(1, Math.min(5, Math.trunc(Number(review.rating) || 0)) ) }).map((_, index) => <Star key={index} size={15} fill="currentColor"/>)}</div><p className="review-approved-comment">{review.comment || "Sem comentário."}</p>{review.admin_reply?.trim() && <div className="review-approved-reply"><small>Resposta da PIPOKÁ</small><p>{review.admin_reply.trim()}</p></div>}</article>)}</div>
     </section>
 
     {closedNoticeOpen && <div className="closed-notice-modal" role="dialog" aria-modal="true" aria-labelledby="closed-notice-title"><div className="closed-notice-dialog"><button className="closed-notice-close" onClick={() => setClosedNoticeOpen(false)} aria-label="Fechar aviso"><X/></button><div className="closed-notice-icon">🍿</div><span>LOJA FECHADA</span><h2 id="closed-notice-title">{settings.closed_banner_title || "Voltaremos em breve"}</h2><p>{settings.closed_banner_text || settings.closed_message}</p><div className="closed-notice-actions"><Link href="/contato">Falar com a PIPOKÁ</Link><button onClick={() => setClosedNoticeOpen(false)}>Continuar no site</button></div></div></div>}
 
-    {reviewOpen && <div className="review-modal"><div className="review-dialog"><button className="review-close" onClick={() => setReviewOpen(false)}><X/></button>{reviewSent ? <div className="review-success"><Star size={46} fill="currentColor"/><h2>Obrigada pela avaliação!</h2><p>Sua mensagem será analisada antes de aparecer no site.</p><button onClick={() => setReviewOpen(false)}>Fechar</button></div> : <form onSubmit={submitReview}><UserRound size={34}/><h2>Deixe sua avaliação</h2><p>Faça um cadastro simples para enviar estrelas e uma mensagem.</p><input required placeholder="Seu nome"/><input required type="email" placeholder="Seu e-mail"/><input required type="password" minLength={6} placeholder="Crie uma senha"/><select required defaultValue=""><option value="" disabled>Escolha as estrelas</option><option value="5">★★★★★ — Excelente</option><option value="4">★★★★☆ — Muito bom</option><option value="3">★★★☆☆ — Bom</option><option value="2">★★☆☆☆ — Regular</option><option value="1">★☆☆☆☆ — Ruim</option></select><textarea required maxLength={300} placeholder="Conte como foi sua experiência..."/><button type="submit">Enviar avaliação</button></form>}</div></div>}
+    
   </div>;
 }

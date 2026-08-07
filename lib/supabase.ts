@@ -498,10 +498,25 @@ export type CustomerReviewRecord = {
   rating: number;
   comment?: string | null;
   admin_reply?: string | null;
+  public_name?: string | null;
+  status?: "pending" | "approved" | "rejected";
   visible: boolean;
+  featured?: boolean;
+  display_order?: number | null;
   created_at: string;
   customer_profiles?: { full_name?: string; email?: string } | null;
   orders?: { order_code?: string } | null;
+};
+
+export type PublicApprovedReview = {
+  id: string;
+  rating: number;
+  comment?: string | null;
+  admin_reply?: string | null;
+  public_name?: string | null;
+  featured?: boolean;
+  display_order?: number | null;
+  created_at: string;
 };
 
 export async function getCustomerReviews(limit = 200): Promise<CustomerReviewRecord[]> {
@@ -510,11 +525,31 @@ export async function getCustomerReviews(limit = 200): Promise<CustomerReviewRec
   return Array.isArray(payload) ? payload as CustomerReviewRecord[] : [];
 }
 
-export async function updateCustomerReview(id: string, changes: Partial<Pick<CustomerReviewRecord, "admin_reply" | "visible">>) {
+export async function updateCustomerReview(id: string, changes: Partial<Pick<CustomerReviewRecord, "admin_reply" | "visible" | "public_name" | "status" | "featured" | "display_order">>) {
   const payload = await request(`/rest/v1/customer_reviews?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify(changes),
   }, { auth: true });
   return Array.isArray(payload) ? payload[0] || null : payload;
+}
+
+export async function getPublicApprovedCustomerReviews(limit = 50): Promise<PublicApprovedReview[]> {
+  const maxRows = 5000;
+  const target = limit > 0 ? Math.max(1, Math.min(maxRows, limit)) : maxRows;
+  const pageSize = 200;
+  const all: PublicApprovedReview[] = [];
+  let offset = 0;
+
+  while (all.length < target) {
+    const batchSize = Math.min(pageSize, target - all.length);
+    const payload = await request(`/rest/v1/customer_reviews?select=id,rating,comment,admin_reply,public_name,featured,display_order,created_at&status=eq.approved&visible=eq.true&order=created_at.desc&limit=${batchSize}&offset=${offset}`);
+    const chunk = Array.isArray(payload) ? payload as PublicApprovedReview[] : [];
+    if (!chunk.length) break;
+    all.push(...chunk);
+    if (chunk.length < batchSize) break;
+    offset += chunk.length;
+  }
+
+  return all;
 }
 
 
