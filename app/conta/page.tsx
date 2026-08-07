@@ -114,8 +114,8 @@ export default function CustomerAccountPage() {
     try {
       const next = await customerSignIn(String(data.get("identifier") || ""), String(data.get("password") || ""));
       setSession(next);
-      const destination = nextPath();
-      if (destination) window.setTimeout(() => { window.location.href = destination; }, 250);
+      const destination = nextPath() || "/";
+      window.setTimeout(() => { window.location.href = destination; }, 250);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível entrar.");
     } finally { setBusy(false); }
@@ -141,8 +141,8 @@ export default function CustomerAccountPage() {
       if (result?.access_token) {
         setSession(result);
         await ensureCustomerAccount().catch(() => null);
-        const destination = nextPath();
-        if (destination) window.setTimeout(() => { window.location.href = destination; }, 250);
+        const destination = nextPath() || "/";
+        window.setTimeout(() => { window.location.href = destination; }, 250);
       } else {
         setMessage("Cadastro criado. Confirme seu e-mail e depois entre na conta. Seu endereço ficará salvo automaticamente.");
         setMode("login");

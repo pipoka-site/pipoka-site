@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Clock3, Flame, Gift, Search, Sparkles, Star, Truck, UserRound, X } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { useStoreData } from "@/hooks/useStoreData";
 import { isStoreCurrentlyOpen } from "@/lib/schedule";
@@ -24,6 +24,15 @@ export default function Home() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewSent, setReviewSent] = useState(false);
   const [closedNoticeOpen, setClosedNoticeOpen] = useState(false);
+  const bannerTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  function nextSlide() {
+    setSlide((value) => (value + 1) % banners.length);
+  }
+
+  function prevSlide() {
+    setSlide((value) => (value - 1 + banners.length) % banners.length);
+  }
 
   useEffect(() => {
     const syncStoreStatus = () => setOpenNow(isStoreCurrentlyOpen(settings));
@@ -33,9 +42,25 @@ export default function Home() {
   }, [settings]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setSlide((value) => (value + 1) % banners.length), 5000);
+    const timer = window.setInterval(nextSlide, 5000);
     return () => window.clearInterval(timer);
   }, [banners.length]);
+
+  function onBannerTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+    if (!event.touches.length) return;
+    bannerTouchStartRef.current = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+  }
+
+  function onBannerTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    if (!bannerTouchStartRef.current || !event.changedTouches.length) return;
+    const start = bannerTouchStartRef.current;
+    const end = event.changedTouches[0];
+    const deltaX = end.clientX - start.x;
+    const deltaY = end.clientY - start.y;
+    bannerTouchStartRef.current = null;
+    if (Math.abs(deltaX) < 45 || Math.abs(deltaY) > 40) return;
+    if (deltaX < 0) nextSlide(); else prevSlide();
+  }
 
   useEffect(() => {
     if (!loading && !openNow && settings.closed_banner_enabled) {
@@ -61,7 +86,7 @@ export default function Home() {
     </section>
 
     <section className="mobile-hero" aria-label="Banners da PIPOKÁ">
-      <div className="mobile-hero-photo">
+      <div className="mobile-hero-photo" onTouchStart={onBannerTouchStart} onTouchEnd={onBannerTouchEnd}>
         <Image src={banners[slide]} alt={`Banner PIPOKÁ ${slide + 1}`} fill priority className="object-cover"/>
         <div className="mobile-hero-overlay"/>
         <div className="mobile-hero-copy">
@@ -70,8 +95,8 @@ export default function Home() {
           <p>Pipocas artesanais com fotos reais da PIPOKÁ.</p>
           <Link href="/cardapio">Peça agora</Link>
         </div>
-        <button aria-label="Banner anterior" className="hero-arrow left" onClick={() => setSlide((slide - 1 + banners.length) % banners.length)}><ChevronLeft/></button>
-        <button aria-label="Próximo banner" className="hero-arrow right" onClick={() => setSlide((slide + 1) % banners.length)}><ChevronRight/></button>
+        <button aria-label="Banner anterior" className="hero-arrow left" onClick={prevSlide}><ChevronLeft/></button>
+        <button aria-label="Próximo banner" className="hero-arrow right" onClick={nextSlide}><ChevronRight/></button>
       </div>
       <div className="hero-dots">{banners.map((_, index) => <button key={index} onClick={() => setSlide(index)} className={index === slide ? "active" : ""} aria-label={`Abrir banner ${index + 1}`}/>)}</div>
     </section>

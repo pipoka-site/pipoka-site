@@ -26,8 +26,27 @@ export default function ProductCard({ product }: { product: Product }) {
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(1);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const lightboxGestureState = useRef({
+    startX: 0,
+    startY: 0,
+    lastTapAt: 0,
+    baseScale: 1,
+    pinchStartDistance: 0,
+    pinching: false,
+  });
+  const [lightboxScale, setLightboxScale] = useState(1);
   const activeImage = gallery[current] || product.image;
   const imagePosition = product.image_positions?.[activeImage] || { x: 50, y: 50, zoom: 1 };
+
+  function clampScale(value: number) {
+    return Math.min(3, Math.max(1, value));
+  }
+
+  function touchDistance(touchA: Touch, touchB: Touch) {
+    const x = touchA.clientX - touchB.clientX;
+    const y = touchA.clientY - touchB.clientY;
+    return Math.sqrt(x * x + y * y);
+  }
 
   useEffect(() => {
     if (!getCustomerSession()) return;
@@ -66,6 +85,103 @@ export default function ProductCard({ product }: { product: Product }) {
       document.body.style.overflow = previousOverflow;
     };
   }, [gallery.length, galleryOpen]);
+
+  useEffect(() => {
+    if (!galleryOpen) {
+      setLightboxScale(1);
+      return;
+    }
+
+    const dialog = document.querySelector('[role="dialog"][aria-label$="galeria de fotos"]') as HTMLElement | null;
+    if (!dialog) return;
+
+    const image = dialog.querySelector("img") as HTMLImageElement | null;
+    if (image) {
+      image.style.transform = `scale(${lightboxScale})`;
+      image.style.transformOrigin = "center center";
+      image.style.transition = "transform 120ms ease-out";
+      image.style.willChange = "transform";
+    }
+
+    const gesture = lightboxGestureState.current;
+    gesture.baseScale = lightboxScale;
+
+    function onTouchStart(event: TouchEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("button")) return;
+
+      if (event.touches.length === 2) {
+        gesture.pinching = true;
+        gesture.pinchStartDistance = touchDistance(event.touches[0], event.touches[1]);
+        gesture.baseScale = lightboxScale;
+        return;
+      }
+
+      if (event.touches.length !== 1) return;
+      gesture.startX = event.touches[0].clientX;
+      gesture.startY = event.touches[0].clientY;
+    }
+
+    function onTouchMove(event: TouchEvent) {
+      if (!gesture.pinching || event.touches.length !== 2) return;
+      event.preventDefault();
+      const nextDistance = touchDistance(event.touches[0], event.touches[1]);
+      if (!gesture.pinchStartDistance) return;
+      const scaled = clampScale((nextDistance / gesture.pinchStartDistance) * gesture.baseScale);
+      setLightboxScale(scaled);
+    }
+
+    function onTouchEnd(event: TouchEvent) {
+      if (gesture.pinching && event.touches.length < 2) {
+        gesture.pinching = false;
+        gesture.baseScale = lightboxScale;
+        return;
+      }
+
+      if (event.changedTouches.length !== 1) return;
+
+      const endX = event.changedTouches[0].clientX;
+      const endY = event.changedTouches[0].clientY;
+      const deltaX = endX - gesture.startX;
+      const deltaY = endY - gesture.startY;
+      const now = Date.now();
+
+      if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+        if (now - gesture.lastTapAt < 280) {
+          setLightboxScale((currentScale) => currentScale > 1 ? 1 : 2);
+          gesture.lastTapAt = 0;
+        } else {
+          gesture.lastTapAt = now;
+        }
+      }
+
+      if (lightboxScale > 1 || gallery.length < 2) return;
+
+      if (Math.abs(deltaX) > 55 && Math.abs(deltaY) < 45) {
+        if (deltaX < 0) {
+          setCurrent((value) => (value + 1) % gallery.length);
+        } else {
+          setCurrent((value) => (value - 1 + gallery.length) % gallery.length);
+        }
+      }
+    }
+
+    dialog.addEventListener("touchstart", onTouchStart, { passive: true });
+    dialog.addEventListener("touchmove", onTouchMove, { passive: false });
+    dialog.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      dialog.removeEventListener("touchstart", onTouchStart);
+      dialog.removeEventListener("touchmove", onTouchMove);
+      dialog.removeEventListener("touchend", onTouchEnd);
+      if (image) {
+        image.style.transform = "";
+        image.style.transformOrigin = "";
+        image.style.transition = "";
+        image.style.willChange = "";
+      }
+    };
+  }, [current, gallery.length, galleryOpen, lightboxScale]);
 
   async function toggleFavorite() {
     if (!getCustomerSession()) { window.location.href = "/conta"; return; }

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="PIPOKÁ">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#7b1022" />
+      <stop offset="100%" stop-color="#3a0710" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)" />
+  <rect x="14" y="20" width="100" height="88" rx="18" fill="#f5c542" opacity="0.92" />
+  <path d="M26 32h76l-10 62H36z" fill="#6d0d1c" />
+  <circle cx="42" cy="42" r="7" fill="#f5c542" />
+  <circle cx="64" cy="38" r="8" fill="#f5c542" />
+  <circle cx="86" cy="44" r="7" fill="#f5c542" />
+  <text x="64" y="90" text-anchor="middle" font-family="Georgia, serif" font-size="24" fill="#f5c542">P</text>
+</svg>
